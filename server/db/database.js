@@ -1,4 +1,4 @@
-const initSqlJs = require('sql.js');
+const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
 
@@ -8,43 +8,39 @@ let dbReady = null;
 
 function initDb() {
   if (dbReady) return dbReady;
-  dbReady = initSqlJs().then(SQL => {
-    let data = null;
-    if (fs.existsSync(DB_PATH)) {
-      data = fs.readFileSync(DB_PATH);
-      db = new SQL.Database(data);
-      console.log('🗄️  Database loaded from file');
+
+  dbReady = Promise.resolve().then(() => {
+    const dbExists = fs.existsSync(DB_PATH);
+    db = new Database(DB_PATH);
+    db.pragma('journal_mode = WAL');
+    db.pragma('foreign_keys = ON');
+
+    if (dbExists) {
+      console.log('🗄️  Database loaded from file:', DB_PATH);
     } else {
-      db = new SQL.Database();
-      console.log('🗄️  Creating new database...');
+      console.log('🗄️  Creating new database at:', DB_PATH);
       const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
-      db.run(schema);
+      db.exec(schema);
       console.log('✅ Schema created');
       const seed = fs.readFileSync(path.join(__dirname, 'seed.sql'), 'utf8');
-      db.run(seed);
+      db.exec(seed);
       console.log('✅ Seed data loaded');
-      saveDb();
     }
     return db;
   });
+
   return dbReady;
 }
 
 function getDb() {
+  if (!db) {
+    throw new Error('Database not initialized. Call initDb() first.');
+  }
   return db;
 }
 
 function saveDb() {
-  if (!db) return;
-  const data = db.export();
-  fs.writeFileSync(DB_PATH, Buffer.from(data));
+  // better-sqlite3 writes directly to the disk file synchronously.
 }
 
-// Auto-save every 30 seconds
-setInterval(() => { if (db) saveDb(); }, 30000);
-
-// Save on process exit
-process.on('exit', saveDb);
-process.on('SIGINT', () => { saveDb(); process.exit(); });
-
-module.exports = { initDb, getDb, saveDb };
+module.exports = { initDb, getDb, saveDb, DB_PATH };

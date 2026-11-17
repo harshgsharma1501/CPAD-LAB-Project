@@ -1,34 +1,28 @@
-const { getDb, saveDb } = require('../db/database');
+const { getDb } = require('../db/database');
 
-// Convert sql.js result to array of objects
 function queryAll(sql, params = []) {
   const db = getDb();
   const stmt = db.prepare(sql);
-  if (params.length) stmt.bind(params.map(p => p === undefined ? null : p));
-  const rows = [];
-  while (stmt.step()) {
-    rows.push(stmt.getAsObject());
-  }
-  stmt.free();
-  return rows;
+  const cleanParams = params.map(p => (p === undefined ? null : p));
+  return stmt.all(...cleanParams);
 }
 
 function queryOne(sql, params = []) {
-  const rows = queryAll(sql, params);
-  return rows[0] || null;
+  const db = getDb();
+  const stmt = db.prepare(sql);
+  const cleanParams = params.map(p => (p === undefined ? null : p));
+  return stmt.get(...cleanParams) || null;
 }
 
 function run(sql, params = []) {
   const db = getDb();
   const stmt = db.prepare(sql);
-  if (params.length) stmt.bind(params.map(p => p === undefined ? null : p));
-  stmt.step();
-  stmt.free();
-  saveDb();
-  const info = db.exec("SELECT last_insert_rowid() as id, changes() as changes");
-  const lastId = info[0]?.values[0]?.[0] || 0;
-  const changes = info[0]?.values[0]?.[1] || 0;
-  return { lastInsertRowid: lastId, changes };
+  const cleanParams = params.map(p => (p === undefined ? null : p));
+  const info = stmt.run(...cleanParams);
+  return {
+    lastInsertRowid: Number(info.lastInsertRowid),
+    changes: info.changes,
+  };
 }
 
 module.exports = { queryAll, queryOne, run };

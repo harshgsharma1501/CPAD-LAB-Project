@@ -746,3 +746,9 @@ INSERT INTO admin_config (key, value, category, label, description) VALUES
 ('notification_sms', 'false', 'Notification', 'SMS Notifications', 'Enable SMS notifications'),
 ('institution_name', 'Veermata Jijabai Technological Institute (VJTI)', 'General', 'Institution Name', 'Name of the institution'),
 ('hostel_contact', '+91-22-24198101', 'General', 'Hostel Office Contact', 'Main contact number');
+
+-- Audit Log
+INSERT INTO audit_log (user_id, action, entity, entity_id, details, ip_address) VALUES
+(13, 'SYSTEM_INIT', 'system', 1, 'Initial system configuration and database seed loaded', '127.0.0.1'),
+(11, 'ROOM_ALLOCATION', 'room_allocations', 1, 'Allocated Room G01 to student 1', '127.0.0.1');
+
